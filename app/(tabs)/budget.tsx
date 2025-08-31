@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Alert,
   Modal,
@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { PieChart } from "react-native-gifted-charts";
 
 // Mock data for demonstration
 const mockData = {
@@ -73,6 +74,12 @@ export default function BudgetScreen() {
     "needs" | "wants" | "savings"
   >("needs");
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedPieSlice, setSelectedPieSlice] = useState<{
+    label: string;
+    value: number;
+    amount: number;
+    color: string;
+  } | null>(null);
 
   const toggleItemCompletion = (
     category: "needs" | "wants" | "savings",
@@ -146,6 +153,102 @@ export default function BudgetScreen() {
   const needsBudget = data.income * 0.5;
   const wantsBudget = data.income * 0.3;
   const savingsBudget = data.income * 0.2;
+
+  // Pie chart data
+  const pieData = [
+    {
+      value: 50,
+      color: "#FF6B6B",
+      focused: selectedPieSlice?.label === "Needs",
+      text: "50%",
+      label: "Needs",
+      amount: needsBudget,
+      spent: needsCompleted,
+    },
+    {
+      value: 30,
+      color: "#4ECDC4",
+      focused: selectedPieSlice?.label === "Wants",
+      text: "30%",
+      label: "Wants",
+      amount: wantsBudget,
+      spent: wantsCompleted,
+    },
+    {
+      value: 20,
+      color: "#45B7D1",
+      focused: selectedPieSlice?.label === "Savings",
+      text: "20%",
+      label: "Savings",
+      amount: savingsBudget,
+      spent: savingsCompleted,
+    },
+  ];
+
+  // Doughnut Chart Component using react-native-gifted-charts
+  const SimplePieChart = ({
+    data,
+    onSlicePress,
+  }: {
+    data: any[];
+    onSlicePress: (item: any) => void;
+  }) => {
+    // Prepare data for gifted-charts
+    const chartData = data.map((item, index) => ({
+      value: item.value,
+      color: item.color,
+      text: `${item.value}%`,
+      label: item.label,
+      focused: selectedPieSlice?.label === item.label,
+      onPress: () => onSlicePress(item),
+    }));
+
+    const centerContent = selectedPieSlice ? (
+      <View style={styles.centerContent}>
+        <Text style={styles.centerPercentage}>{selectedPieSlice.value}%</Text>
+        <Text style={styles.centerLabel}>{selectedPieSlice.label}</Text>
+        <Text style={styles.centerAmount}>
+          RM {selectedPieSlice.amount?.toFixed(2) || "0.00"}
+        </Text>
+        <Text style={styles.centerSpent}>
+          Spent: RM {(selectedPieSlice as any).spent?.toFixed(2) || "0.00"}
+        </Text>
+      </View>
+    ) : (
+      <View style={styles.centerContent}>
+        <Text style={styles.centerTitle}>50-30-20</Text>
+        <Text style={styles.centerSubtitle}>Budget Plan</Text>
+        <Text style={styles.centerIncome}>RM 5,000.00</Text>
+      </View>
+    );
+
+    return (
+      <View style={styles.simplePieChartContainer}>
+        <View style={styles.chartWrapper}>
+          <PieChart
+            data={chartData}
+            donut
+            showGradient
+            sectionAutoFocus
+            radius={150}
+            innerRadius={80}
+            innerCircleColor="#ffffff"
+            centerLabelComponent={() => centerContent}
+            onPress={(item: any) => onSlicePress(item)}
+            focusOnPress
+            toggleFocusOnPress
+            strokeWidth={2}
+            strokeColor="#ffffff"
+            textColor="#ffffff"
+            textSize={14}
+            fontWeight="bold"
+            showText
+            textBackgroundRadius={18}
+          />
+        </View>
+      </View>
+    );
+  };
 
   const renderCategory = (
     title: string,
@@ -277,37 +380,25 @@ export default function BudgetScreen() {
           </View>
         </View>
 
-        {/* 50-30-20 Breakdown */}
-        <View style={styles.breakdownContainer}>
-          <Text style={styles.breakdownTitle}>50-30-20 Budget Allocation</Text>
-          <View style={styles.breakdownRow}>
-            <View
-              style={[styles.breakdownItem, { backgroundColor: "#FF6B6B" }]}
-            >
-              <Text style={styles.breakdownPercentage}>50%</Text>
-              <Text style={styles.breakdownLabel}>Needs</Text>
-              <Text style={styles.breakdownAmount}>
-                RM {needsBudget.toFixed(2)}
-              </Text>
-            </View>
-            <View
-              style={[styles.breakdownItem, { backgroundColor: "#4ECDC4" }]}
-            >
-              <Text style={styles.breakdownPercentage}>30%</Text>
-              <Text style={styles.breakdownLabel}>Wants</Text>
-              <Text style={styles.breakdownAmount}>
-                RM {wantsBudget.toFixed(2)}
-              </Text>
-            </View>
-            <View
-              style={[styles.breakdownItem, { backgroundColor: "#45B7D1" }]}
-            >
-              <Text style={styles.breakdownPercentage}>20%</Text>
-              <Text style={styles.breakdownLabel}>Savings</Text>
-              <Text style={styles.breakdownAmount}>
-                RM {savingsBudget.toFixed(2)}
-              </Text>
-            </View>
+        {/* Interactive Pie Chart */}
+        <View style={styles.pieChartContainer}>
+          <Text style={styles.pieChartTitle}>50-30-20 Budget Allocation</Text>
+          <View style={styles.pieChartWrapper}>
+            <SimplePieChart
+              data={pieData}
+              onSlicePress={(item: any) => {
+                const sliceData = {
+                  label: item.label,
+                  value: item.value,
+                  amount: item.amount,
+                  color: item.color,
+                  spent: item.spent,
+                };
+                setSelectedPieSlice(
+                  selectedPieSlice?.label === item.label ? null : sliceData
+                );
+              }}
+            />
           </View>
         </View>
 
@@ -486,10 +577,10 @@ const styles = StyleSheet.create({
   negativeBalance: {
     color: "#dc3545",
   },
-  breakdownContainer: {
+  pieChartContainer: {
     backgroundColor: "#fff",
     margin: 20,
-    padding: 15,
+    padding: 20,
     borderRadius: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -497,38 +588,108 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  breakdownTitle: {
+  pieChartTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    marginBottom: 15,
+    marginBottom: 20,
+    textAlign: "center",
+    color: "#333",
+  },
+  pieChartWrapper: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  simplePieChartContainer: {
+    alignItems: "center",
+    width: "100%",
+  },
+  chartWrapper: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 20,
+  },
+  centerContent: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  centerTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
     textAlign: "center",
   },
-  breakdownRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  breakdownItem: {
-    flex: 1,
-    alignItems: "center",
-    padding: 10,
-    marginHorizontal: 5,
-    borderRadius: 8,
-  },
-  breakdownPercentage: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  breakdownLabel: {
+  centerSubtitle: {
     fontSize: 12,
-    color: "#fff",
-    marginTop: 5,
-  },
-  breakdownAmount: {
-    fontSize: 14,
-    color: "#fff",
-    fontWeight: "bold",
+    color: "#666",
     marginTop: 2,
+    textAlign: "center",
+  },
+  centerIncome: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#007AFF",
+    marginTop: 4,
+    textAlign: "center",
+  },
+  centerPercentage: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#333",
+    textAlign: "center",
+  },
+  centerLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginTop: 2,
+    textAlign: "center",
+  },
+  centerAmount: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 2,
+    textAlign: "center",
+  },
+  centerSpent: {
+    fontSize: 12,
+    color: "#999",
+    marginTop: 2,
+    textAlign: "center",
+  },
+  pieChartVisual: {
+    position: "relative",
+    height: 200,
+    width: 200,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
+  legendContainer: {
+    backgroundColor: "#f8f9fa",
+    padding: 15,
+    borderRadius: 10,
+    minWidth: 200,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  legendColor: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 6,
+  },
+  legendText: {
+    fontSize: 12,
+    color: "#666",
   },
   categoryContainer: {
     backgroundColor: "#fff",
