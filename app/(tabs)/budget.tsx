@@ -80,6 +80,8 @@ export default function BudgetScreen() {
     amount: number;
     color: string;
   } | null>(null);
+  const [isIncomeModalVisible, setIsIncomeModalVisible] = useState(false);
+  const [tempIncome, setTempIncome] = useState("");
 
   const toggleItemCompletion = (
     category: "needs" | "wants" | "savings",
@@ -127,6 +129,27 @@ export default function BudgetScreen() {
     setNewItemName("");
     setNewItemAmount("");
     setIsModalVisible(false);
+  };
+
+  const updateIncome = () => {
+    if (!tempIncome.trim()) {
+      Alert.alert("Error", "Please enter an income amount");
+      return;
+    }
+
+    const newIncome = parseFloat(tempIncome);
+    if (isNaN(newIncome) || newIncome <= 0) {
+      Alert.alert("Error", "Please enter a valid income amount");
+      return;
+    }
+
+    setData((prev) => ({
+      ...prev,
+      income: newIncome,
+    }));
+
+    setTempIncome("");
+    setIsIncomeModalVisible(false);
   };
 
   const getCategoryTotal = (category: BudgetItem[]) => {
@@ -362,10 +385,18 @@ export default function BudgetScreen() {
 
         {/* Income and Balance */}
         <View style={styles.summaryContainer}>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Monthly Income</Text>
+          <TouchableOpacity
+            style={styles.summaryCard}
+            onPress={() => {
+              setTempIncome(data.income.toString());
+              setIsIncomeModalVisible(true);
+            }}
+          >
+            <View style={styles.incomeHeader}>
+              <Text style={styles.summaryLabel}>Monthly Income</Text>
+            </View>
             <Text style={styles.incomeAmount}>RM {data.income.toFixed(2)}</Text>
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.summaryCard}>
             <Text style={styles.summaryLabel}>Balance</Text>
@@ -507,6 +538,56 @@ export default function BudgetScreen() {
                 onPress={addNewItem}
               >
                 <Text style={styles.confirmButtonText}>Add Item</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Income Modal */}
+      <Modal
+        visible={isIncomeModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsIncomeModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Monthly Income</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setIsIncomeModalVisible(false)}
+              >
+                <Text style={styles.closeButtonText}>×</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Monthly Income (RM)"
+              value={tempIncome}
+              onChangeText={setTempIncome}
+              keyboardType="numeric"
+              autoFocus={true}
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setIsIncomeModalVisible(false);
+                  setTempIncome("");
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={updateIncome}
+              >
+                <Text style={styles.confirmButtonText}>Update</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -893,5 +974,16 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  incomeHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 5,
+  },
+  editIcon: {
+    fontSize: 16,
+    color: "#666",
+    opacity: 0.7,
   },
 });
