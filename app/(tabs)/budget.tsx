@@ -234,7 +234,12 @@ export default function BudgetScreen() {
           RM {selectedPieSlice.amount?.toFixed(2) || "0.00"}
         </Text>
         <Text style={styles.centerSpent}>
-          Spent: RM {(selectedPieSlice as any).spent?.toFixed(2) || "0.00"}
+          Spent: RM{" "}
+          {selectedPieSlice.label === "Needs"
+            ? needsCompleted.toFixed(2)
+            : selectedPieSlice.label === "Wants"
+            ? wantsCompleted.toFixed(2)
+            : savingsCompleted.toFixed(2)}
         </Text>
       </View>
     ) : (
