@@ -81,7 +81,7 @@ export default function BudgetScreen() {
     color: string;
   } | null>(null);
   const [isIncomeModalVisible, setIsIncomeModalVisible] = useState(false);
-  const [tempIncome, setTempIncome] = useState("");
+  const [income, setIncome] = useState("");
 
   const toggleItemCompletion = (
     category: "needs" | "wants" | "savings",
@@ -132,12 +132,12 @@ export default function BudgetScreen() {
   };
 
   const updateIncome = () => {
-    if (!tempIncome.trim()) {
+    if (!income.trim()) {
       Alert.alert("Error", "Please enter an income amount");
       return;
     }
 
-    const newIncome = parseFloat(tempIncome);
+    const newIncome = parseFloat(income);
     if (isNaN(newIncome) || newIncome <= 0) {
       Alert.alert("Error", "Please enter a valid income amount");
       return;
@@ -148,7 +148,7 @@ export default function BudgetScreen() {
       income: newIncome,
     }));
 
-    setTempIncome("");
+    setIncome("");
     setIsIncomeModalVisible(false);
   };
 
@@ -177,8 +177,8 @@ export default function BudgetScreen() {
   const wantsBudget = data.income * 0.3;
   const savingsBudget = data.income * 0.2;
 
-  // Pie chart data
-  const pieData = [
+  // Donut chart data
+  const donutChartData = [
     {
       value: 50,
       color: "#FF6B6B",
@@ -208,15 +208,16 @@ export default function BudgetScreen() {
     },
   ];
 
-  // Doughnut Chart Component using react-native-gifted-charts
-  const SimplePieChart = ({
+  // Donut Chart Component using react-native-gifted-charts
+  const DonutChart = ({
     data,
     onSlicePress,
+    income,
   }: {
     data: any[];
     onSlicePress: (item: any) => void;
+    income: number;
   }) => {
-    // Prepare data for gifted-charts
     const chartData = data.map((item, index) => ({
       value: item.value,
       color: item.color,
@@ -246,12 +247,12 @@ export default function BudgetScreen() {
       <View style={styles.centerContent}>
         <Text style={styles.centerTitle}>50-30-20</Text>
         <Text style={styles.centerSubtitle}>Budget Plan</Text>
-        <Text style={styles.centerIncome}>RM 5,000.00</Text>
+        <Text style={styles.centerIncome}>RM {income.toFixed(2)}</Text>
       </View>
     );
 
     return (
-      <View style={styles.simplePieChartContainer}>
+      <View style={styles.donutChartContainer}>
         <View style={styles.chartWrapper}>
           <PieChart
             data={chartData}
@@ -364,7 +365,6 @@ export default function BudgetScreen() {
       <ScrollView style={styles.container}>
         <StatusBar style="dark" />
 
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => changeMonth("prev")}
@@ -393,7 +393,7 @@ export default function BudgetScreen() {
           <TouchableOpacity
             style={styles.summaryCard}
             onPress={() => {
-              setTempIncome(data.income.toString());
+              setIncome(data.income.toString());
               setIsIncomeModalVisible(true);
             }}
           >
@@ -420,8 +420,9 @@ export default function BudgetScreen() {
         <View style={styles.pieChartContainer}>
           <Text style={styles.pieChartTitle}>50-30-20 Budget Allocation</Text>
           <View style={styles.pieChartWrapper}>
-            <SimplePieChart
-              data={pieData}
+            <DonutChart
+              data={donutChartData}
+              income={data.income}
               onSlicePress={(item: any) => {
                 const sliceData = {
                   label: item.label,
@@ -571,8 +572,8 @@ export default function BudgetScreen() {
             <TextInput
               style={styles.input}
               placeholder="Monthly Income (RM)"
-              value={tempIncome}
-              onChangeText={setTempIncome}
+              value={income}
+              onChangeText={setIncome}
               keyboardType="numeric"
               autoFocus={true}
             />
@@ -582,7 +583,7 @@ export default function BudgetScreen() {
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => {
                   setIsIncomeModalVisible(false);
-                  setTempIncome("");
+                  setIncome("");
                 }}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -685,7 +686,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
-  simplePieChartContainer: {
+  donutChartContainer: {
     alignItems: "center",
     width: "100%",
   },
