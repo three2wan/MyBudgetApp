@@ -65,6 +65,15 @@ type MonthlyData = {
   savings: BudgetItem[];
 };
 
+const formatCurrency = (amount: number): string => {
+  return amount.toLocaleString("en-MY", {
+    style: "currency",
+    currency: "MYR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
 export default function BudgetScreen() {
   const [currentMonth, setCurrentMonth] = useState("2024-01");
   const [data, setData] = useState<MonthlyData>(mockData["2024-01"]);
@@ -232,22 +241,22 @@ export default function BudgetScreen() {
         <Text style={styles.centerPercentage}>{selectedPieSlice.value}%</Text>
         <Text style={styles.centerLabel}>{selectedPieSlice.label}</Text>
         <Text style={styles.centerAmount}>
-          RM {selectedPieSlice.amount?.toFixed(2) || "0.00"}
+          {formatCurrency(selectedPieSlice.amount || 0)}
         </Text>
         <Text style={styles.centerSpent}>
-          Spent: RM{" "}
+          Spent:
           {selectedPieSlice.label === "Needs"
-            ? needsCompleted.toFixed(2)
+            ? formatCurrency(needsCompleted)
             : selectedPieSlice.label === "Wants"
-            ? wantsCompleted.toFixed(2)
-            : savingsCompleted.toFixed(2)}
+            ? formatCurrency(wantsCompleted)
+            : formatCurrency(savingsCompleted)}
         </Text>
       </View>
     ) : (
       <View style={styles.centerContent}>
         <Text style={styles.centerTitle}>50-30-20</Text>
         <Text style={styles.centerSubtitle}>Budget Plan</Text>
-        <Text style={styles.centerIncome}>RM {income.toFixed(2)}</Text>
+        <Text style={styles.centerIncome}>{formatCurrency(income)}</Text>
       </View>
     );
 
@@ -294,7 +303,7 @@ export default function BudgetScreen() {
         <View style={styles.categoryHeader}>
           <Text style={[styles.categoryTitle, { color }]}>{title}</Text>
           <Text style={styles.categoryAmount}>
-            RM {completed.toFixed(2)} / RM {budget.toFixed(2)}
+            {formatCurrency(completed)} / {formatCurrency(budget)}
           </Text>
         </View>
 
@@ -335,7 +344,7 @@ export default function BudgetScreen() {
                     item.completed && styles.completedText,
                   ]}
                 >
-                  RM {item.amount.toFixed(2)}
+                  {formatCurrency(item.amount)}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -400,7 +409,9 @@ export default function BudgetScreen() {
             <View style={styles.incomeHeader}>
               <Text style={styles.summaryLabel}>Monthly Income</Text>
             </View>
-            <Text style={styles.incomeAmount}>RM {data.income.toFixed(2)}</Text>
+            <Text style={styles.incomeAmount}>
+              {formatCurrency(data.income)}
+            </Text>
           </TouchableOpacity>
 
           <View style={styles.summaryCard}>
@@ -411,7 +422,7 @@ export default function BudgetScreen() {
                 balance < 0 && styles.negativeBalance,
               ]}
             >
-              RM {balance.toFixed(2)}
+              {formatCurrency(balance)}
             </Text>
           </View>
         </View>
