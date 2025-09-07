@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import { PieChart } from "react-native-gifted-charts";
 
 // Mock data for demonstration
@@ -92,6 +93,17 @@ export default function BudgetScreen() {
   const [isIncomeModalVisible, setIsIncomeModalVisible] = useState(false);
   const [income, setIncome] = useState("");
 
+  // Edit item states
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editingItem, setEditingItem] = useState<{
+    id: number;
+    category: "needs" | "wants" | "savings";
+    name: string;
+    amount: number;
+  } | null>(null);
+  const [editItemName, setEditItemName] = useState("");
+  const [editItemAmount, setEditItemAmount] = useState("");
+
   const toggleItemCompletion = (
     category: "needs" | "wants" | "savings",
     id: number
@@ -159,6 +171,67 @@ export default function BudgetScreen() {
 
     setIncome("");
     setIsIncomeModalVisible(false);
+  };
+
+  const editItem = () => {
+    if (!editItemName.trim() || !editItemAmount.trim() || !editingItem) {
+      Alert.alert("Error", "Please enter both name and amount");
+      return;
+    }
+
+    const amount = parseFloat(editItemAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert("Error", "Please enter a valid amount");
+      return;
+    }
+
+    setData((prev) => ({
+      ...prev,
+      [editingItem.category]: prev[editingItem.category].map((item) =>
+        item.id === editingItem.id
+          ? { ...item, name: editItemName.trim(), amount }
+          : item
+      ),
+    }));
+
+    setEditItemName("");
+    setEditItemAmount("");
+    setEditingItem(null);
+    setIsEditModalVisible(false);
+  };
+
+  const deleteItem = (category: "needs" | "wants" | "savings", id: number) => {
+    Alert.alert("Delete Item", "Are you sure you want to delete this item?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => {
+          setData((prev) => ({
+            ...prev,
+            [category]: prev[category].filter((item) => item.id !== id),
+          }));
+        },
+      },
+    ]);
+  };
+
+  const openEditModal = (
+    item: BudgetItem,
+    category: "needs" | "wants" | "savings"
+  ) => {
+    setEditingItem({
+      id: item.id,
+      category,
+      name: item.name,
+      amount: item.amount,
+    });
+    setEditItemName(item.name);
+    setEditItemAmount(item.amount.toString());
+    setIsEditModalVisible(true);
   };
 
   const getCategoryTotal = (category: BudgetItem[]) => {
@@ -320,35 +393,63 @@ export default function BudgetScreen() {
         </View>
 
         <View style={styles.itemsList}>
-          {items.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.itemRow}
-              onPress={() => toggleItemCompletion(category, item.id)}
-            >
-              <View style={styles.itemContent}>
-                <View style={styles.checkbox}>
-                  {item.completed && <Text style={styles.checkmark}>✓</Text>}
-                </View>
-                <Text
-                  style={[
-                    styles.itemName,
-                    item.completed && styles.completedText,
-                  ]}
+          {items.map((item) => {
+            const renderRightActions = () => (
+              <View style={styles.rightActions}>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.editButton]}
+                  onPress={() => openEditModal(item, category)}
                 >
-                  {item.name}
-                </Text>
-                <Text
-                  style={[
-                    styles.itemAmount,
-                    item.completed && styles.completedText,
-                  ]}
+                  <Text style={styles.actionButtonText}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.deleteButton]}
+                  onPress={() => deleteItem(category, item.id)}
                 >
-                  {formatCurrency(item.amount)}
-                </Text>
+                  <Text style={styles.actionButtonText}>Delete</Text>
+                </TouchableOpacity>
               </View>
-            </TouchableOpacity>
-          ))}
+            );
+
+            return (
+              <Swipeable
+                key={item.id}
+                renderRightActions={renderRightActions}
+                rightThreshold={160}
+                friction={2}
+                overshootFriction={8}
+              >
+                <TouchableOpacity
+                  style={styles.itemRow}
+                  onPress={() => toggleItemCompletion(category, item.id)}
+                >
+                  <View style={styles.itemContent}>
+                    <View style={styles.checkbox}>
+                      {item.completed && (
+                        <Text style={styles.checkmark}>✓</Text>
+                      )}
+                    </View>
+                    <Text
+                      style={[
+                        styles.itemName,
+                        item.completed && styles.completedText,
+                      ]}
+                    >
+                      {item.name}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.itemAmount,
+                        item.completed && styles.completedText,
+                      ]}
+                    >
+                      {formatCurrency(item.amount)}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </Swipeable>
+            );
+          })}
         </View>
       </View>
     );
@@ -603,6 +704,74 @@ export default function BudgetScreen() {
               <TouchableOpacity
                 style={[styles.modalButton, styles.confirmButton]}
                 onPress={updateIncome}
+              >
+                <Text style={styles.confirmButtonText}>Update</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Item Modal */}
+      <Modal
+        visible={isEditModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setIsEditModalVisible(false);
+          setEditItemName("");
+          setEditItemAmount("");
+          setEditingItem(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Item</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => {
+                  setIsEditModalVisible(false);
+                  setEditItemName("");
+                  setEditItemAmount("");
+                  setEditingItem(null);
+                }}
+              >
+                <Text style={styles.closeButtonText}>×</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Item name"
+              value={editItemName}
+              onChangeText={setEditItemName}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Amount (RM)"
+              value={editItemAmount}
+              onChangeText={setEditItemAmount}
+              keyboardType="numeric"
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setIsEditModalVisible(false);
+                  setEditItemName("");
+                  setEditItemAmount("");
+                  setEditingItem(null);
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={editItem}
               >
                 <Text style={styles.confirmButtonText}>Update</Text>
               </TouchableOpacity>
@@ -1002,5 +1171,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#666",
     opacity: 0.7,
+  },
+  rightActions: {
+    flexDirection: "row",
+    width: 160,
+    marginVertical: 8,
+  },
+  actionButton: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    height: "100%",
+    borderRadius: 8,
+  },
+  editButton: {
+    backgroundColor: "#007AFF",
+  },
+  deleteButton: {
+    backgroundColor: "#dc3545",
+  },
+  actionButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
   },
 });
